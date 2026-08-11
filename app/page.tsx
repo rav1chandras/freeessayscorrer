@@ -1131,8 +1131,8 @@ export default function ScorePage() {
                           onPaste={(event) => handleLimitedPaste(event, activeToolMeta.maxWords, (value) => setEssayLimited(value, activeToolMeta.maxWords), essay)}
                           placeholder={`Paste your essay here (${MIN_WORDS}–${activeToolMeta.maxWords} words)…`}
                         />
-                        <span className="essayWordCount">{wc} / {activeToolMeta.maxWords} words</span>
                       </div>
+                      <span className="essayWordCount">{wc} / {activeToolMeta.maxWords} words</span>
                       </>
                   ) : (
                     <p className="p-4 text-sm text-admitly-black/60">
@@ -2641,23 +2641,20 @@ export default function ScorePage() {
             border: 1px solid #e2e8f0;
             border-radius: 16px;
             outline: 0;
-            padding: 17px 17px 34px;
+            padding: 17px;
             color: #223046;
             font: 400 15px/1.75 'DM Sans', system-ui, sans-serif;
             background: #fff;
           }
 
           .essayWordCount {
-            position: absolute;
-            right: 16px;
-            bottom: 11px;
+            display: block;
+            align-self: flex-end;
+            margin-top: -4px;
             color: #64748b;
             font-size: 11px;
             line-height: 1;
             font-weight: 400;
-            pointer-events: none;
-            background: rgba(255,255,255,.86);
-            padding-left: 8px;
           }
 
           .runButton {
