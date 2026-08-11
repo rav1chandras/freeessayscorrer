@@ -5,6 +5,7 @@ import {
   getOrCreateAnonSessionId,
   COOKIE_NAME,
   COOKIE_MAX_AGE,
+  DAILY_LIMIT,
 } from '@/lib/anon-quota'
 
 import {
@@ -27,6 +28,7 @@ import {
 
 const MIN_WORDS = 50
 const MAX_WORDS = 1500
+const META_MODEL = 'muse-spark-1.2-contributor'
 
 type PublicTool = 'hook' | 'cliche' | 'aicheck' | 'fullscore'
 const PUBLIC_TOOLS: PublicTool[] = ['hook', 'cliche', 'aicheck', 'fullscore']
@@ -46,6 +48,88 @@ function isPublicTool(v: unknown): v is PublicTool {
 
 function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+function extractMetaDelta(event: unknown): string {
+  if (!event || typeof event !== 'object') return ''
+  const obj = event as Record<string, unknown>
+  if (typeof obj.delta === 'string') return obj.delta
+  if (typeof obj.text === 'string' && typeof obj.type === 'string' && obj.type.includes('delta')) {
+    return obj.text
+  }
+  if (obj.delta && typeof obj.delta === 'object') {
+    const delta = obj.delta as Record<string, unknown>
+    if (typeof delta.text === 'string') return delta.text
+    if (typeof delta.content === 'string') return delta.content
+  }
+  return ''
+}
+
+function extractMetaText(value: unknown): string {
+  if (!value || typeof value !== 'object') return ''
+  const obj = value as Record<string, unknown>
+
+  if (typeof obj.output_text === 'string') return obj.output_text
+  if (typeof obj.text === 'string') return obj.text
+  if (typeof obj.content === 'string') return obj.content
+
+  if (Array.isArray(obj.output)) {
+    return obj.output.map(extractMetaText).filter(Boolean).join('')
+  }
+  if (Array.isArray(obj.content)) {
+    return obj.content.map(extractMetaText).filter(Boolean).join('')
+  }
+  if (obj.message) return extractMetaText(obj.message)
+  if (obj.response) return extractMetaText(obj.response)
+
+  return ''
+}
+
+function parseMetaSse(rawStream: string): string {
+  const blocks = rawStream.split(/\r?\n\r?\n/)
+  const deltas: string[] = []
+  let finalText = ''
+
+  for (const block of blocks) {
+    const data = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n')
+      .trim()
+
+    if (!data || data === '[DONE]') continue
+
+    try {
+      const event = JSON.parse(data)
+      const delta = extractMetaDelta(event)
+      if (delta) {
+        deltas.push(delta)
+      } else if (deltas.length === 0) {
+        const text = extractMetaText(event)
+        if (text) finalText = text
+      }
+    } catch {
+      // Ignore malformed keepalive/event chunks and continue reading.
+    }
+  }
+
+  return deltas.join('') || finalText
+}
+
+async function readMetaResponseText(resp: Response): Promise<string> {
+  const bodyText = await resp.text()
+  const contentType = resp.headers.get('content-type') ?? ''
+
+  if (contentType.includes('text/event-stream')) {
+    return parseMetaSse(bodyText)
+  }
+
+  try {
+    return extractMetaText(JSON.parse(bodyText))
+  } catch {
+    return bodyText
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -100,7 +184,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json(
       {
         error:
-          'You\'ve used your 3 free analyses for today. Sign up at app.admitly.com for unlimited access, or come back tomorrow.',
+          `You've used your ${DAILY_LIMIT} free analyses for today. Sign up at app.admitly.com for unlimited access, or come back tomorrow.`,
         quota_exceeded: true,
       },
       { status: 429 }
@@ -123,36 +207,44 @@ export async function POST(req: NextRequest) {
     case 'fullscore': prompt = buildFullScorePrompt(essay, essayType); break
   }
 
-  // ── Call OpenAI ───────────────────────────────────────────────────────────
+  // ── Call Meta Model API ───────────────────────────────────────────────────
   let raw: string
   try {
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
+    const apiKey = process.env.MODEL_API_KEY
+    if (!apiKey) throw new Error('MODEL_API_KEY not configured')
 
-    const modelResp = await fetch('https://api.openai.com/v1/chat/completions', {
+    const modelResp = await fetch('https://api.meta.ai/v1/responses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: tool === 'hook' || tool === 'fullscore' ? 'gpt-4o' : 'gpt-4o-mini',
-        max_tokens: 1500,
-        temperature: 0.2,
-        messages: [{ role: 'user', content: prompt }],
+        model: META_MODEL,
+        input: [
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: prompt }],
+          },
+        ],
+        stream: true,
+        temperature: 1,
+        max_output_tokens: 32000,
+        top_p: 1,
+        reasoning: { effort: 'medium' },
       }),
     })
 
     if (!modelResp.ok) {
       const errText = await modelResp.text()
-      throw new Error(`OpenAI error ${modelResp.status}: ${errText}`)
+      throw new Error(`Meta Model API error ${modelResp.status}: ${errText}`)
     }
 
-    const data = await modelResp.json()
-    raw = data.choices?.[0]?.message?.content ?? ''
+    raw = await readMetaResponseText(modelResp)
   } catch (err) {
     refundAnon(sessionId)
-    console.error('[public/score] OpenAI call failed:', err)
+    console.error('[public/score] Meta Model API call failed:', err)
     const res = NextResponse.json({ error: 'AI service error. Please try again.' }, { status: 502 })
     if (isNew) res.cookies.set(COOKIE_NAME, sessionId, { httpOnly: true, sameSite: 'lax', secure: isProd, path: '/', maxAge: COOKIE_MAX_AGE })
     return res
@@ -182,7 +274,7 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json({
     tool,
     result,
-    quota: { remaining: quota.remaining, limit: 3, resetAt },
+    quota: { remaining: quota.remaining, limit: DAILY_LIMIT, resetAt },
   })
 
   if (isNew) {

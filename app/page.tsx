@@ -2651,7 +2651,7 @@ function QuotaExceededCard() {
         <AlertIcon size={13} /> Daily limit reached
       </div>
       <h3 className="text-xl sm:text-2xl font-black mt-3 mb-2 leading-tight text-admitly-black">
-        You&apos;ve used all 3 free analyses today.
+        You&apos;ve used all 5 free analyses today.
       </h3>
       <p className="text-admitly-black/70 mb-5 text-sm">
         Come back tomorrow, or unlock all tools and unlimited analyses on Admitly.

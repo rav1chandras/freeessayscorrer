@@ -46,8 +46,8 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="font-display text-lg font-black text-admitly-black mb-2 tracking-tight">2. How essay content is processed</h2>
-            <p>When you submit an essay, the text is transmitted to <span className="font-bold text-admitly-black">OpenAI&apos;s API</span> so that an AI model can generate the feedback you see. This transmission happens in real time during the request. OpenAI is an independent third party and processes your content under its own privacy practices and data policies, currently available at <a href="https://openai.com/policies" target="_blank" rel="noopener noreferrer" className="text-fes-blue underline font-semibold">openai.com/policies</a>. We have no control over OpenAI&apos;s practices and make no representations about them.</p>
-            <p className="mt-3">FES does not persistently store the essay text you submit on our own infrastructure. It exists only in your browser, in the outgoing API request, and in OpenAI&apos;s returned response. Because the request is processed by a third party, however, we cannot guarantee that your content is not retained, reviewed, or otherwise processed by that third party in accordance with their own policies.</p>
+            <p>When you submit an essay, the text is transmitted to <span className="font-bold text-admitly-black">Meta&apos;s Model API</span> so that an AI model can generate the feedback you see. This transmission happens in real time during the request. Meta is an independent third party and processes your content under its own privacy practices and data policies, currently available at <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer" className="text-fes-blue underline font-semibold">facebook.com/privacy/policy</a>. We have no control over Meta&apos;s practices and make no representations about them.</p>
+            <p className="mt-3">FES does not persistently store the essay text you submit on our own infrastructure. It exists only in your browser, in the outgoing API request, and in Meta&apos;s returned response. Because the request is processed by a third party, however, we cannot guarantee that your content is not retained, reviewed, or otherwise processed by that third party in accordance with their own policies.</p>
           </section>
 
           <section>
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
             <h2 className="font-display text-lg font-black text-admitly-black mb-2 tracking-tight">6. Sharing of information</h2>
             <p>We share information only in the following circumstances:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
-              <li><span className="font-bold">Service providers.</span> With third-party vendors who perform services on our behalf, including OpenAI (AI processing) and the hosting provider. These vendors are bound by their own terms and privacy practices.</li>
+              <li><span className="font-bold">Service providers.</span> With third-party vendors who perform services on our behalf, including Meta (AI processing) and the hosting provider. These vendors are bound by their own terms and privacy practices.</li>
               <li><span className="font-bold">Admitly.</span> Email addresses you voluntarily submit through FES may be shared with Admitly, a separate affiliated service, so that Admitly can deliver the credits or follow-up communications you requested. Admitly&apos;s own privacy policy governs any further use of your email.</li>
               <li><span className="font-bold">Legal and safety.</span> To comply with applicable law, legal process, or enforceable governmental request; to enforce our Terms; to detect, prevent, or address fraud, security, or technical issues; or to protect the rights, property, or safety of FES, our users, or others.</li>
               <li><span className="font-bold">Business transfers.</span> In connection with a merger, acquisition, reorganization, bankruptcy, or sale of all or a portion of our assets, in which case information may be transferred to the successor entity as part of that transaction.</li>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="font-display text-lg font-black text-admitly-black mb-2 tracking-tight">8. International data transfers</h2>
-            <p>The Service is operated from the United States. If you access it from outside the United States, your information will be transferred to, processed in, and stored in the United States. Our AI processing vendor (OpenAI) is also a United States entity. By using the Service, you consent to this transfer and processing in the United States, which may have data-protection laws different from those of your country.</p>
+            <p>The Service is operated from the United States. If you access it from outside the United States, your information will be transferred to, processed in, and stored in the United States. Our AI processing vendor (Meta) is also a United States entity. By using the Service, you consent to this transfer and processing in the United States, which may have data-protection laws different from those of your country.</p>
           </section>
 
           <section>

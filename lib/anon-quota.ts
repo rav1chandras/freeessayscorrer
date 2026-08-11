@@ -2,7 +2,7 @@
  * Anonymous quota for the public-facing essay scorer.
  * Tracks quota by an anonymous session ID stored in an httpOnly cookie.
  *
- * - 3 free runs per UTC day per browser
+ * - 5 free runs per UTC day per browser
  * - Quota resets at 00:00 UTC
  * - In-memory for now; swap for Redis/DB in production
  */
@@ -11,7 +11,7 @@ import { randomUUID } from 'crypto'
 import { cookies } from 'next/headers'
 
 const COOKIE_NAME = 'fes_session'
-const DAILY_LIMIT = 3
+const DAILY_LIMIT = 5
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 interface AnonEntry {

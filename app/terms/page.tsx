@@ -49,7 +49,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="font-display text-lg font-black text-admitly-black mb-2 tracking-tight">4. How your essay text is processed</h2>
-            <p>When you submit an essay, the text you paste is transmitted to <span className="font-bold text-admitly-black">OpenAI&apos;s API</span> for processing. OpenAI is an independent third party operating under its own terms and data policies. We do not control OpenAI&apos;s handling of your text and are not responsible for their practices, security, or availability.</p>
+            <p>When you submit an essay, the text you paste is transmitted to <span className="font-bold text-admitly-black">Meta&apos;s Model API</span> for processing. Meta is an independent third party operating under its own terms and data policies. We do not control Meta&apos;s handling of your text and are not responsible for their practices, security, or availability.</p>
             <p className="mt-3">FES does not persistently store the essay text you submit. Feedback is generated in real time and is not saved to our servers by default. That said, we log anonymous operational metadata (e.g. which tool was used, whether the request succeeded, the qualitative tier of the result) as described in the Privacy Policy.</p>
           </section>
 
@@ -85,7 +85,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="font-display text-lg font-black text-admitly-black mb-2 tracking-tight">8. Third-party services</h2>
-            <p>The Service integrates with or links to third-party services including, without limitation, OpenAI (for AI processing) and Admitly (for premium credit fulfillment). We are not responsible for the availability, content, terms, privacy practices, or security of any third-party service. Your interactions with third-party services are governed by their own terms and policies.</p>
+            <p>The Service integrates with or links to third-party services including, without limitation, Meta (for AI processing) and Admitly (for premium credit fulfillment). We are not responsible for the availability, content, terms, privacy practices, or security of any third-party service. Your interactions with third-party services are governed by their own terms and policies.</p>
           </section>
 
           <section>

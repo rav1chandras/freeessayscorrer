@@ -16,7 +16,7 @@ Set these in Hostinger hPanel for the Node.js app:
 
 ```bash
 NODE_ENV=production
-OPENAI_API_KEY=your-real-openai-api-key
+MODEL_API_KEY=your-real-meta-model-api-key
 ADMIN_PASSWORD=your-long-random-admin-password
 DB_HOST=your-hostinger-mysql-host
 DB_PORT=3306
@@ -42,4 +42,4 @@ Use hPanel -> Databases -> MySQL for the DB values.
 - Do not upload local `.env`.
 - Keep `ADMIN_PASSWORD` long and random.
 - Use the real Hostinger MySQL credentials only in hPanel environment variables.
-- Rotate the OpenAI API key if it was ever shared or uploaded accidentally.
+- Rotate the Meta Model API key if it was ever shared or uploaded accidentally.
