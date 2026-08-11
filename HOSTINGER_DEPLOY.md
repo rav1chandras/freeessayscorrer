@@ -7,7 +7,7 @@ This package is source-only. It intentionally does not include `.env`, `node_mod
 - Node version: `20.x`
 - Install command: `npm ci`
 - Build command: `npm run build`
-- Start command: `npm start`
+- Start command: `npm start` (runs `.next/standalone/server.js`)
 - App URL: `https://freeessayscorer.com`
 
 ## Required Environment Variables
