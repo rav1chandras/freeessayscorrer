@@ -19,6 +19,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# runtime data fallback
+.data/
+
 # system
 .DS_Store
 
