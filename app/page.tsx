@@ -533,6 +533,28 @@ const TOOL_SIDE_ICONS: Record<ToolId, string> = {
   'prompt-fit': 'PF',
 }
 
+const TOOL_OUTPUT_STATS: Record<ToolId, Array<[string, string]>> = {
+  reader: [['First read', 'impact'], ['Hook notes', '2-5'], ['Top fixes', 'clear']],
+  studio: [['Workspace', 'drafting'], ['Versions', 'saved'], ['Workflow', 'guided']],
+  thesis: [['Claim check', 'focused'], ['Rewrite', 'options'], ['Risk flags', 'clear']],
+  outline: [['Essay map', 'planned'], ['Sections', 'ordered'], ['Next steps', 'ready']],
+  paragraph: [['Flow fix', 'targeted'], ['Before/after', 'notes'], ['Polish', 'line-level']],
+  evidence: [['Proof gaps', 'found'], ['Claim strength', 'scored'], ['Support', 'suggested']],
+  conclusion: [['Closure', 'scored'], ['Reflection', 'checked'], ['Stronger end', 'drafted']],
+  score: [['Score', '/100'], ['Rubric notes', '4 areas'], ['Priority fixes', '3 steps']],
+  'prompt-fit': [['Coverage', 'scored'], ['Missing asks', 'flagged'], ['Prompt fit', 'mapped']],
+}
+
+function reviewChipsForTool(rows: Array<[string, string]>): string[] {
+  const source = rows[0]?.[1] ?? ''
+  return source
+    .replace(/\band\b/g, ',')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+}
+
 const DEFAULT_ESSAY_TYPE = 'Common App Personal Statement'
 const MIN_WORDS = 50
 
@@ -785,6 +807,7 @@ export default function ScorePage() {
   const [quotaExceeded, setQuotaExceeded] = useState(false)
   const [response, setResponse] = useState<ScoreResponse | null>(null)
   const [quota, setQuota] = useState<{ remaining: number; limit: number } | null>(null)
+  const [promptOpen, setPromptOpen] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [emailCaptured, setEmailCaptured] = useState(false)
   const [paywallTool, setPaywallTool] = useState<ToolId | null>(null)
@@ -898,6 +921,7 @@ export default function ScorePage() {
     setActiveTool(nextTool)
     setEssay('')
     setPrompt('')
+    setPromptOpen(false)
     setActivePane('input')
     if (isFreeTool(nextTool)) {
       return
@@ -1005,13 +1029,29 @@ export default function ScorePage() {
 
               <p className="staticCopy">{activeToolMeta.intro}</p>
 
-              <div className="miniStack">
-                {sideCopy.miniRows.map(([label, body]) => (
-                  <div className="miniRow" key={label}>
-                    <b>{label}</b>
-                    <span>{body}</span>
+              <div className="toolBrief">
+                <div className="briefBlock">
+                  <div className="briefLabel">{sideCopy.miniRows[1]?.[0] ?? 'Best for'}</div>
+                  <p>{sideCopy.miniRows[1]?.[1] ?? activeToolMeta.tagline}</p>
+                </div>
+
+                <div className="briefBlock">
+                  <div className="briefLabel">{sideCopy.miniRows[0]?.[0] ?? 'Reviews'}</div>
+                  <div className="reviewChips">
+                    {reviewChipsForTool(sideCopy.miniRows).map((chip) => (
+                      <span key={chip}><CheckIcon size={12} />{chip}</span>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                <div className="briefStats" aria-label="Expected output">
+                  {TOOL_OUTPUT_STATS[activeTool].map(([label, value]) => (
+                    <div className="briefStat" key={label}>
+                      <strong>{value}</strong>
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {!isActiveFree && (
@@ -1025,30 +1065,55 @@ export default function ScorePage() {
 
             <section className={`rightAccordion ${activePane === 'output' ? 'outputOpen' : 'inputOpen'}`}>
               <article className="workAcc inputPanel">
-                <button type="button" className="workHead" onClick={() => setActivePane('input')}>
+                <div className="workHead inputWorkHead">
                   <span className="workNum">1</span>
-                  <span className="workTitle">
+                  <button type="button" className="workTitle workTitleButton" onClick={() => setActivePane('input')}>
                     <strong>{sideCopy.inputTitle}</strong>
                     <small>{sideCopy.inputHint}</small>
-                  </span>
-                  <span className="workState">{wc} / {activeToolMeta.maxWords} words</span>
-                </button>
+                  </button>
+                  <div className="workControls">
+                    {isActiveFree && (
+                      <button
+                        className="runButton headerRunButton"
+                        onClick={handleSubmit}
+                        disabled={!canSubmit}
+                      >
+                        {loading ? (
+                          <LoadingSpinner />
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5">
+                            {sideCopy.runLabel}
+                            <ArrowRight size={14} strokeWidth={2.5} />
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    <span className="workState">{wc} / {activeToolMeta.maxWords} words</span>
+                  </div>
+                </div>
                 <div className="workBody">
                   {isActiveFree ? (
                     <>
-                      <div className="promptStrip">
-                        <b>Optional prompt:</b>
-                        <textarea
-                          value={prompt}
-                          onChange={(event) => {
-                            setPromptLimited(event.target.value)
-                            clearResults()
-                          }}
-                          onPaste={(event) => handleLimitedPaste(event, 100, setPrompt, prompt)}
-                          rows={2}
-                          placeholder="Optional prompt (up to 100 words)"
-                        />
-                        <small>{promptWords} / 100 words</small>
+                      <div className={['promptStrip', promptOpen ? 'open' : 'collapsed'].join(' ')}>
+                        <button type="button" className="promptToggle" onClick={() => setPromptOpen((open) => !open)}>
+                          <span>
+                            <b>Optional prompt</b>
+                            <small>{promptWords} / 100 words</small>
+                          </span>
+                          <strong>{promptOpen ? 'Hide' : prompt ? 'Edit prompt' : 'Add prompt'}</strong>
+                        </button>
+                        {promptOpen && (
+                          <textarea
+                            value={prompt}
+                            onChange={(event) => {
+                              setPromptLimited(event.target.value)
+                              clearResults()
+                            }}
+                            onPaste={(event) => handleLimitedPaste(event, 100, setPrompt, prompt)}
+                            rows={2}
+                            placeholder="Paste the essay prompt or assignment context..."
+                          />
+                        )}
                       </div>
                       <textarea
                         className="essayInput"
@@ -1060,23 +1125,7 @@ export default function ScorePage() {
                         onPaste={(event) => handleLimitedPaste(event, activeToolMeta.maxWords, (value) => setEssayLimited(value, activeToolMeta.maxWords), essay)}
                         placeholder={`Paste your essay here (${MIN_WORDS}–${activeToolMeta.maxWords} words)…`}
                       />
-                      <div className="actions">
-                        <p>{sideCopy.runHint}</p>
-                          <button
-                            className="runButton"
-                            onClick={handleSubmit}
-                            disabled={!canSubmit}
-                          >
-                            {loading ? (
-                              <LoadingSpinner />
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5">
-                                {sideCopy.runLabel}
-                                <ArrowRight size={14} strokeWidth={2.5} />
-                              </span>
-                            )}
-                          </button>
-                        </div>
+                      <p className="inputHintNote">{sideCopy.runHint}</p>
                       </>
                   ) : (
                     <p className="p-4 text-sm text-admitly-black/60">
@@ -2246,26 +2295,98 @@ export default function ScorePage() {
             font: 400 15px/1.75 'DM Sans', system-ui, sans-serif;
           }
 
-          .miniStack {
+          .toolBrief {
+            border: 1px solid #e0e9f6;
+            border-radius: 18px;
+            background:
+              linear-gradient(180deg, rgba(248,251,255,.96), rgba(255,255,255,.98)),
+              radial-gradient(circle at 100% 0%, rgba(255,229,0,.22), transparent 45%);
+            padding: 12px;
             display: grid;
-            gap: 8px;
+            gap: 12px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
           }
 
-          .miniRow {
-            border: 1px solid #e6edf7;
-            border-radius: 13px;
-            background: #fbfcfe;
-            padding: 10px;
-            color: #64748b;
-            font: 400 15px/1.75 'DM Sans', system-ui, sans-serif;
+          .briefBlock {
+            min-width: 0;
           }
 
-          .miniRow b {
-            display: block;
+          .briefLabel {
             color: ${ADMITLY_NAVY};
-            font-size: 12px;
+            font-size: 11px;
             line-height: 1.2;
-            margin-bottom: 5px;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 7px;
+          }
+
+          .briefBlock p {
+            margin: 0;
+            color: #64748b;
+            font: 700 15px/1.45 'DM Sans', system-ui, sans-serif;
+          }
+
+          .reviewChips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+          }
+
+          .reviewChips span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
+            border: 1px solid rgba(6,36,91,.1);
+            border-radius: 999px;
+            background: #fff;
+            color: ${ADMITLY_NAVY};
+            padding: 6px 8px;
+            font-size: 12px;
+            line-height: 1;
+            font-weight: 850;
+            box-shadow: 0 6px 16px rgba(15,23,42,.045);
+          }
+
+          .reviewChips svg {
+            color: #0f9f6e;
+            flex: 0 0 auto;
+          }
+
+          .briefStats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+          }
+
+          .briefStat {
+            min-width: 0;
+            border-radius: 13px;
+            background: ${ADMITLY_NAVY};
+            color: #fff;
+            padding: 10px 8px;
+          }
+
+          .briefStat strong,
+          .briefStat span {
+            display: block;
+            overflow-wrap: anywhere;
+          }
+
+          .briefStat strong {
+            color: ${ADMITLY_YELLOW};
+            font-size: 13px;
+            line-height: 1.1;
+            font-weight: 950;
+          }
+
+          .briefStat span {
+            margin-top: 5px;
+            color: rgba(255,255,255,.72);
+            font-size: 10px;
+            line-height: 1.2;
+            font-weight: 800;
           }
 
           .upgradeCard {
@@ -2326,7 +2447,7 @@ export default function ScorePage() {
 
           .workHead {
             display: grid;
-            grid-template-columns: 42px minmax(0, 1fr) auto;
+            grid-template-columns: 42px minmax(0, 1fr) minmax(118px, auto);
             align-items: center;
             gap: 12px;
             padding: 14px 16px;
@@ -2339,6 +2460,10 @@ export default function ScorePage() {
             font-family: inherit;
           }
 
+          .inputWorkHead {
+            cursor: default;
+          }
+
           .workNum {
             width: 34px;
             height: 34px;
@@ -2349,6 +2474,25 @@ export default function ScorePage() {
             color: #fff;
             font-size: 12px;
             font-weight: 950;
+          }
+
+          .workTitleButton {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            text-align: left;
+            font-family: inherit;
+            cursor: pointer;
+            min-width: 0;
+          }
+
+          .workControls {
+            display: grid;
+            justify-items: end;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
           }
 
           .workState {
@@ -2406,15 +2550,57 @@ export default function ScorePage() {
             border: 1px solid #e1e8f2;
             border-radius: 14px;
             background: #f8fafc;
-            padding: 12px 13px;
+            padding: 8px 10px;
             color: #526174;
             display: grid;
-            gap: 3px;
+            gap: 8px;
           }
 
-          .promptStrip b {
+          .promptToggle {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+          }
+
+          .promptToggle span,
+          .promptToggle b,
+          .promptToggle small,
+          .promptToggle strong {
+            display: block;
+          }
+
+          .promptToggle b {
             color: ${ADMITLY_NAVY};
             font-size: 12px;
+            line-height: 1.2;
+          }
+
+          .promptToggle small {
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 800;
+            margin-top: 3px;
+          }
+
+          .promptToggle strong {
+            border-radius: 999px;
+            background: #fff;
+            color: ${ADMITLY_NAVY};
+            box-shadow: inset 0 0 0 1px rgba(6,36,91,.1);
+            padding: 7px 10px;
+            font-size: 11px;
+            line-height: 1;
+            font-weight: 900;
+            white-space: nowrap;
           }
 
           .promptStrip textarea {
@@ -2428,13 +2614,6 @@ export default function ScorePage() {
             background: transparent;
             color: #223046;
             font: 400 15px/1.75 'DM Sans', system-ui, sans-serif;
-          }
-
-          .promptStrip small {
-            color: #64748b;
-            font-size: 10px;
-            font-weight: 800;
-            text-align: right;
           }
 
           .essayInput {
@@ -2452,15 +2631,7 @@ export default function ScorePage() {
             background: #fff;
           }
 
-          .actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-top: auto;
-          }
-
-          .actions p {
+          .inputHintNote {
             margin: 0;
             color: #64748b;
             font-size: 11px;
@@ -2479,6 +2650,13 @@ export default function ScorePage() {
             cursor: pointer;
             font-family: inherit;
             white-space: nowrap;
+          }
+
+          .headerRunButton {
+            min-width: 126px;
+            padding: 10px 15px;
+            border-radius: 13px;
+            box-shadow: 0 10px 22px rgba(6,36,91,.15);
           }
 
           .runButton:disabled {
@@ -2568,9 +2746,17 @@ export default function ScorePage() {
               padding: 20px;
             }
 
-            .actions {
-              align-items: flex-start;
-              flex-direction: column;
+            .workHead {
+              grid-template-columns: 36px minmax(0, 1fr);
+            }
+
+            .workControls {
+              grid-column: 2;
+              justify-items: start;
+            }
+
+            .headerRunButton {
+              min-width: 0;
             }
           }
         `}</style>
