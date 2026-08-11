@@ -10,6 +10,9 @@ import {
   AlertIcon,
   SparkleIcon,
   FeatherSparkleLogo,
+  TikTokIcon,
+  InstagramIcon,
+  FacebookIcon,
 } from '../components/icons'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -119,6 +122,53 @@ function getUnsupportedEmailDomain(email: string): string | null {
   const domain = trimmed.split('@').pop()
   if (!domain || !domain.includes('.')) return null
   return ALLOWED_EMAIL_DOMAINS.includes(domain) ? null : domain
+}
+
+type SocialPlatform = 'tiktok' | 'instagram' | 'facebook'
+
+function shareToSocial(platform: SocialPlatform) {
+  if (typeof window === 'undefined') return
+
+  const shareUrl = window.location.origin
+  track({ name: 'share_clicked', source: 'header_social', meta: { platform } })
+
+  if (platform === 'facebook') {
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      '_blank',
+      'noopener,noreferrer,width=640,height=520'
+    )
+    return
+  }
+
+  navigator.clipboard?.writeText(shareUrl).catch(() => {})
+  const target = platform === 'instagram' ? 'https://www.instagram.com/' : 'https://www.tiktok.com/'
+  window.open(target, '_blank', 'noopener,noreferrer')
+}
+
+function HeaderSocialShare() {
+  const items = [
+    { platform: 'tiktok' as const, label: 'Share on TikTok', Icon: TikTokIcon },
+    { platform: 'instagram' as const, label: 'Share on Instagram', Icon: InstagramIcon },
+    { platform: 'facebook' as const, label: 'Share on Facebook', Icon: FacebookIcon },
+  ]
+
+  return (
+    <div className="flex items-center gap-1" aria-label="Share Free Essay Scorer">
+      {items.map(({ platform, label, Icon }) => (
+        <button
+          key={platform}
+          type="button"
+          onClick={() => shareToSocial(platform)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-fes-blue transition-colors hover:bg-fes-blue-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fes-blue/30"
+          aria-label={label}
+          title={label}
+        >
+          <Icon size={18} />
+        </button>
+      ))}
+    </div>
+  )
 }
 
 const toolIconBase = (size = 18) => ({
@@ -943,34 +993,37 @@ export default function ScorePage() {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2.5">
             <FeatherSparkleLogo size={38} />
-            <span className="font-display font-extrabold text-[18px] sm:text-[20px] leading-none text-admitly-black tracking-[-0.025em]">
+            <span className="hidden sm:inline font-display font-extrabold text-[20px] leading-none text-admitly-black tracking-[-0.025em]">
               Free Essay Scorer<span className="text-fes-blue">.</span>
             </span>
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full bg-fes-blue-soft px-3 sm:px-3.5 py-1.5">
-          {quota ? (
-            <>
-              <div className="flex gap-1" aria-hidden>
-                {Array.from({ length: quota.limit }).map((_, i) => (
-                  <span
-                    key={i}
-                    className={[
-                      'h-2 w-2 rounded-full transition-colors',
-                      i < quota.remaining ? 'bg-fes-blue' : 'bg-fes-blue/20',
-                    ].join(' ')}
-                  />
-                ))}
-              </div>
-              <span className="text-xs font-bold text-admitly-black tabular-nums">
-                {quota.remaining}
-              </span>
-              <span className="text-xs text-admitly-black/60 hidden sm:inline">left today</span>
-            </>
-          ) : (
-            <span className="text-xs text-admitly-black/60">Checking free quota…</span>
-          )}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <HeaderSocialShare />
+          <div className="inline-flex items-center gap-2 rounded-full bg-fes-blue-soft px-3 sm:px-3.5 py-1.5">
+            {quota ? (
+              <>
+                <div className="flex gap-1" aria-hidden>
+                  {Array.from({ length: quota.limit }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={[
+                        'h-2 w-2 rounded-full transition-colors',
+                        i < quota.remaining ? 'bg-fes-blue' : 'bg-fes-blue/20',
+                      ].join(' ')}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-admitly-black tabular-nums">
+                  {quota.remaining}
+                </span>
+                <span className="text-xs text-admitly-black/60 hidden sm:inline">left today</span>
+              </>
+            ) : (
+              <span className="text-xs text-admitly-black/60">Checking free quota…</span>
+            )}
+          </div>
         </div>
       </header>
 

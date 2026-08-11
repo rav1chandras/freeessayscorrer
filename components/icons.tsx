@@ -157,6 +157,47 @@ export function AlertIcon(props: IconProps) {
   )
 }
 
+function BrandIcon({
+  children, className, size = 18,
+}: IconProps & { children: React.ReactNode }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  )
+}
+
+export function TikTokIcon(props: IconProps) {
+  return (
+    <BrandIcon {...props}>
+      <path d="M15.2 3c.3 2.4 1.7 4 4.2 4.3v3.7a7.7 7.7 0 0 1-4.1-1.3v5.7c0 3.7-2.5 5.6-5.5 5.6-3.1 0-5.4-2.2-5.4-5.2 0-3.3 2.5-5.4 5.7-5.4.4 0 .8 0 1.1.1v3.8a3 3 0 0 0-1.1-.2c-1.2 0-2 .7-2 1.7 0 1.1.8 1.7 1.8 1.7 1.1 0 1.8-.6 1.8-2V3h3.5z" />
+    </BrandIcon>
+  )
+}
+
+export function InstagramIcon(props: IconProps) {
+  return (
+    <BrandIcon {...props}>
+      <path d="M7.2 2.8h9.6c2.4 0 4.4 2 4.4 4.4v9.6c0 2.4-2 4.4-4.4 4.4H7.2a4.4 4.4 0 0 1-4.4-4.4V7.2c0-2.4 2-4.4 4.4-4.4zm0 3A1.4 1.4 0 0 0 5.8 7.2v9.6c0 .8.6 1.4 1.4 1.4h9.6c.8 0 1.4-.6 1.4-1.4V7.2c0-.8-.6-1.4-1.4-1.4H7.2zm4.8 2.5a3.7 3.7 0 1 1 0 7.4 3.7 3.7 0 0 1 0-7.4zm0 2.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zm4.1-3.2a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+    </BrandIcon>
+  )
+}
+
+export function FacebookIcon(props: IconProps) {
+  return (
+    <BrandIcon {...props}>
+      <path d="M14 8.2V6.8c0-.7.5-1.1 1.2-1.1h2.1V2.4c-.4-.1-1.7-.2-3.1-.2-3.1 0-5.2 1.9-5.2 5.2v.8H5.7v3.7H9v9.9h4.1v-9.9h3.3l.5-3.7H14z" />
+    </BrandIcon>
+  )
+}
+
 // ── Brand marks ───────────────────────────────────────────────────────────────
 
 // Feather with three AI sparkles — the FES wordmark logo
