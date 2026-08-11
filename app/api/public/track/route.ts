@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logEvent, isValidEventName } from '@/lib/analytics'
-import { getOrCreateAnonSessionId, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/anon-quota'
+import { logEvent, isValidEventName } from '../../../../lib/analytics'
+import { getOrCreateAnonSessionId, COOKIE_NAME, COOKIE_MAX_AGE } from '../../../../lib/anon-quota'
 
 const isProd = process.env.NODE_ENV === 'production'
 

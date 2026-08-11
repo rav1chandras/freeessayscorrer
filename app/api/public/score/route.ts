@@ -6,25 +6,25 @@ import {
   COOKIE_NAME,
   COOKIE_MAX_AGE,
   DAILY_LIMIT,
-} from '@/lib/anon-quota'
+} from '../../../../lib/anon-quota'
 
 import {
   sanitizeEssayText as hookSanitize,
   buildHookAnalysisPrompt,
   parseHookResponse,
-} from '@/lib/hook-analyzer-helpers'
+} from '../../../../lib/hook-analyzer-helpers'
 
 import {
   sanitizeEssayText as clicheSanitize,
   buildClicheDetectionPrompt,
   parseClicheResponse,
-} from '@/lib/cliche-detector-helpers'
+} from '../../../../lib/cliche-detector-helpers'
 
 import {
   sanitizeEssayText as aiSanitize,
   buildAiCheckPrompt,
   parseAiCheckResponse,
-} from '@/lib/ai-check-helpers'
+} from '../../../../lib/ai-check-helpers'
 
 const MIN_WORDS = 50
 const MAX_WORDS = 1500
@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ── GET quota peek (for the UI to know remaining without consuming) ──────────
-import { peekAnon } from '@/lib/anon-quota'
+import { peekAnon } from '../../../../lib/anon-quota'
 
 const isProd = process.env.NODE_ENV === 'production'
 

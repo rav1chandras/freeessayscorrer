@@ -1,7 +1,7 @@
 'use client'
 
 import { CSSProperties, ClipboardEvent, useEffect, useRef, useState } from 'react'
-import { track } from '@/lib/track'
+import { track } from '../lib/track'
 import {
   ShareIcon,
   LockIcon,
@@ -10,7 +10,7 @@ import {
   AlertIcon,
   SparkleIcon,
   FeatherSparkleLogo,
-} from '@/components/icons'
+} from '../components/icons'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

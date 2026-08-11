@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { captureEmail, validateEmail } from '@/lib/email-capture'
+import { captureEmail, validateEmail } from '../../../../lib/email-capture'
 
 export async function POST(req: NextRequest) {
   let body: { email?: unknown; firstTool?: unknown; source?: unknown }

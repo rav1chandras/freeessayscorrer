@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminAuthed } from '@/lib/admin-auth'
-import { readEvents } from '@/lib/analytics'
-import { readEmails } from '@/lib/email-capture'
+import { isAdminAuthed } from '../../../../lib/admin-auth'
+import { readEvents } from '../../../../lib/analytics'
+import { readEmails } from '../../../../lib/email-capture'
 
 function parseDate(v: string | null): Date | null {
   if (!v) return null

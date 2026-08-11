@@ -7,7 +7,7 @@ import {
   revokeAdminSession,
   ADMIN_COOKIE_NAME,
   ADMIN_SESSION_TTL_MS,
-} from '@/lib/admin-auth'
+} from '../../../../lib/admin-auth'
 
 const isProd = process.env.NODE_ENV === 'production'
 

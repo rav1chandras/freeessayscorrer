@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { FeatherSparkleLogo, ChevronLeft } from '@/components/icons'
+import { FeatherSparkleLogo, ChevronLeft } from '../../components/icons'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Free Essay Scorer',
