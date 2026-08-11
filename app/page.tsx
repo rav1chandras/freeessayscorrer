@@ -97,6 +97,8 @@ type ToolMeta = {
 
 const ADMITLY_NAVY = '#06245B'
 const ADMITLY_YELLOW = '#FFE500'
+const ALLOWED_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
+const EMAIL_DOMAIN_HINT = 'Use Gmail, Yahoo, Hotmail, AOL, or Outlook.'
 
 type TileStyleProps = CSSProperties & {
   '--tile-bg'?: string
@@ -109,6 +111,14 @@ type AdmitlyToolIconProps = {
   className?: string
   size?: number
   strokeWidth?: number
+}
+
+function getUnsupportedEmailDomain(email: string): string | null {
+  const trimmed = email.trim().toLowerCase()
+  if (!trimmed.includes('@')) return null
+  const domain = trimmed.split('@').pop()
+  if (!domain || !domain.includes('.')) return null
+  return ALLOWED_EMAIL_DOMAINS.includes(domain) ? null : domain
 }
 
 const toolIconBase = (size = 18) => ({
@@ -3254,9 +3264,12 @@ function EmailCaptureModal({
   tool, onClose, onCaptured,
 }: { tool: FreeToolId; onClose: () => void; onCaptured: () => void }) {
   const [email, setEmail] = useState('')
+  const [website, setWebsite] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const startedAtRef = useRef(Date.now())
+  const unsupportedDomain = getUnsupportedEmailDomain(email)
 
   async function submit() {
     setErr(null)
@@ -3265,7 +3278,7 @@ function EmailCaptureModal({
       const res = await fetch('/api/public/capture-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, firstTool: tool, source: 'result_modal' }),
+        body: JSON.stringify({ email, firstTool: tool, source: 'result_modal', website, startedAt: startedAtRef.current }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed')
@@ -3298,11 +3311,26 @@ function EmailCaptureModal({
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@school.edu"
-              className="w-full rounded-full border border-admitly-black/10 bg-admitly-cream px-5 py-3 text-sm font-semibold text-admitly-black placeholder:text-admitly-black/30 focus:outline-none focus:border-fes-blue focus:bg-white mb-3 transition-colors"
+              onChange={(event) => {
+                setEmail(event.target.value)
+                setErr(null)
+              }}
+              placeholder="you@gmail.com"
+              className="w-full rounded-full border border-admitly-black/10 bg-admitly-cream px-5 py-3 text-sm font-semibold text-admitly-black placeholder:text-admitly-black/30 focus:outline-none focus:border-fes-blue focus:bg-white transition-colors"
               autoFocus
             />
+            <input
+              type="text"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+              className="sr-only"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+            />
+            <p className={`mt-2 mb-3 text-xs ${unsupportedDomain ? 'text-admitly-coral font-semibold' : 'text-admitly-black/45'}`}>
+              {unsupportedDomain ? EMAIL_DOMAIN_HINT : 'Accepted domains: Gmail, Yahoo, Hotmail, AOL, Outlook.'}
+            </p>
             {err && <p className="text-sm text-admitly-coral mb-3">{err}</p>}
             <button
               onClick={submit}
@@ -3331,9 +3359,12 @@ function PaywallModal({
 }: { toolId?: ToolId; generic?: boolean; onClose: () => void }) {
   const tool = toolId ? TOOLS.find((item) => item.id === toolId) : null
   const [email, setEmail] = useState('')
+  const [website, setWebsite] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const startedAtRef = useRef(Date.now())
+  const unsupportedDomain = getUnsupportedEmailDomain(email)
 
   if (!tool && !generic) return null
 
@@ -3351,7 +3382,7 @@ function PaywallModal({
       const res = await fetch('/api/public/capture-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, firstTool: identifier, source: tool ? 'paywall_modal' : 'credits_modal' }),
+        body: JSON.stringify({ email, firstTool: identifier, source: tool ? 'paywall_modal' : 'credits_modal', website, startedAt: startedAtRef.current }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to save')
@@ -3400,14 +3431,29 @@ function PaywallModal({
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@school.edu"
-              className="w-full rounded-full border border-admitly-black/10 bg-admitly-cream px-5 py-3 text-sm font-semibold text-admitly-black placeholder:text-admitly-black/30 focus:outline-none focus:border-fes-blue focus:bg-white mb-3 transition-colors text-center"
+              onChange={(event) => {
+                setEmail(event.target.value)
+                setErr(null)
+              }}
+              placeholder="you@gmail.com"
+              className="w-full rounded-full border border-admitly-black/10 bg-admitly-cream px-5 py-3 text-sm font-semibold text-admitly-black placeholder:text-admitly-black/30 focus:outline-none focus:border-fes-blue focus:bg-white transition-colors text-center"
               autoFocus
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && email && !submitting) submit()
               }}
             />
+            <input
+              type="text"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+              className="sr-only"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+            />
+            <p className={`mt-2 mb-3 text-xs ${unsupportedDomain ? 'text-admitly-coral font-semibold' : 'text-admitly-black/45'}`}>
+              {unsupportedDomain ? EMAIL_DOMAIN_HINT : 'Accepted domains: Gmail, Yahoo, Hotmail, AOL, Outlook.'}
+            </p>
             {err && <p className="text-xs text-admitly-coral mb-3 font-semibold">{err}</p>}
             <button
               onClick={submit}

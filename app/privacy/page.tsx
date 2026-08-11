@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             <p>We collect two categories of information directly from you:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
               <li><span className="font-bold">Essay content.</span> Text you paste into the Service in order to receive feedback. This is processed as described in section 2 and is not retained by us after the request completes.</li>
-              <li><span className="font-bold">Email addresses.</span> If you voluntarily submit an email address (for example, to request free Admitly credits, to unlock a premium tool, or to save an analysis), we collect the address along with the tool or surface that prompted the submission and the timestamp of submission. Disposable-email addresses from commonly known throwaway providers are automatically rejected.</li>
+              <li><span className="font-bold">Email addresses.</span> If you voluntarily submit an email address (for example, to request free Admitly credits, to unlock a premium tool, or to save an analysis), we collect the address along with the tool or surface that prompted the submission and the timestamp of submission. To reduce spam and abuse, email signup currently accepts Gmail, Yahoo, Hotmail, AOL, and Outlook addresses.</li>
             </ul>
           </section>
 

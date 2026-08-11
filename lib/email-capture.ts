@@ -4,7 +4,7 @@
  *
  * Rejects:
  *   - malformed addresses
- *   - domains in the DISPOSABLE_DOMAINS blocklist (throwaway inboxes)
+ *   - addresses outside the supported consumer email domains
  *
  * Dedupes on email (case-insensitive) via a UNIQUE index; concurrent writes
  * are safe because conflicts are caught at the DB layer, not in JS.
@@ -15,31 +15,17 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { getDb } from './db'
 
-// Disposable / throwaway email providers — block at capture time.
-const DISPOSABLE_DOMAINS = new Set<string>([
-  '10minutemail.com', '10minutemail.net',
-  'guerrillamail.com', 'guerrillamail.net', 'guerrillamail.org', 'sharklasers.com',
-  'grr.la', 'guerrillamailblock.com',
-  'mailinator.com', 'mailinator.net', 'mailinator.org',
-  'tempmail.com', 'temp-mail.com', 'temp-mail.org',
-  'tmpmail.org', 'tmpmail.net',
-  'throwaway.email', 'throwawaymail.com',
-  'yopmail.com', 'yopmail.fr', 'yopmail.net',
-  'trashmail.com', 'trashmail.net',
-  'getnada.com', 'nada.email',
-  'maildrop.cc', 'discard.email', 'fakeinbox.com', 'mohmal.com',
-  'emailondeck.com', 'mintemail.com', 'dispostable.com', 'mytemp.email',
-  'spam4.me', 'getairmail.com', 'harakirimail.com', 'dropmail.me',
-  'mail.tm', 'tempr.email', 'linshiyouxiang.net', 'mail-temp.com',
-  'inboxbear.com', 'tempmailo.com',
-])
+export const ALLOWED_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com'] as const
+export const ALLOWED_EMAIL_DOMAIN_HINT = 'Use Gmail, Yahoo, Hotmail, AOL, or Outlook.'
+
+const ALLOWED_EMAIL_DOMAIN_SET = new Set<string>(ALLOWED_EMAIL_DOMAINS)
 
 const FALLBACK_DIR = path.join(process.cwd(), '.data')
 const FALLBACK_EMAILS_FILE = path.join(FALLBACK_DIR, 'email-captures.jsonl')
 
 export type EmailValidation =
   | { ok: true; email: string }
-  | { ok: false; reason: 'format' | 'disposable' }
+  | { ok: false; reason: 'format' | 'domain' }
 
 export interface EmailCapture {
   email: string
@@ -56,14 +42,14 @@ export function isValidEmail(email: unknown): email is string {
 }
 
 /**
- * Full validation: format + legitimate-domain check.
+ * Full validation: format + supported-domain check.
  */
 export function validateEmail(email: unknown): EmailValidation {
   if (!isValidEmail(email)) return { ok: false, reason: 'format' }
   const normalized = email.trim().toLowerCase()
   const domain = normalized.split('@')[1]
   if (!domain) return { ok: false, reason: 'format' }
-  if (DISPOSABLE_DOMAINS.has(domain)) return { ok: false, reason: 'disposable' }
+  if (!ALLOWED_EMAIL_DOMAIN_SET.has(domain)) return { ok: false, reason: 'domain' }
   return { ok: true, email: normalized }
 }
 
