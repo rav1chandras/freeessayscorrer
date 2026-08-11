@@ -398,7 +398,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: string
     outputHint: string
     runLabel: string
-    runHint: string
     miniRows: Array<[string, string]>
   }
 > = {
@@ -408,7 +407,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Reader output',
     outputHint: 'See how a reader may react.',
     runLabel: 'Run Reader',
-    runHint: 'Run once this draft is ready to score.',
     miniRows: [
       ['Reader lens', 'High-school reader for first-pass impact'],
       ['Focus', 'Clarity, memorability, and opening strength'],
@@ -421,7 +419,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Essay Studio',
     outputHint: 'Multi-tool production workflow.',
     runLabel: 'Open Studio',
-    runHint: 'Draft, revise, and organize essays.',
     miniRows: [
       ['Workspace', 'Draft, revise, and review essays.'],
       ['Mode', 'Shareable, versioned writing workflow.'],
@@ -434,7 +431,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Thesis result',
     outputHint: 'See what your central idea should focus on.',
     runLabel: 'Check Thesis',
-    runHint: 'Run once your thesis is in place.',
     miniRows: [
       ['Checks', 'Clarity, specificity, and arguable claim'],
       ['Best for', 'Intro-focused essays and arguments'],
@@ -447,7 +443,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Outline result',
     outputHint: 'Review your full essay structure plan.',
     runLabel: 'Build Outline',
-    runHint: 'Run once the prompt is pasted.',
     miniRows: [
       ['Builds', 'Hook, body points, counterpoint, conclusion'],
       ['Best for', 'Prompt interpretation and planning'],
@@ -460,7 +455,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Paragraph fix',
     outputHint: 'Targeted edits for that section.',
     runLabel: 'Fix Paragraph',
-    runHint: 'Run once the paragraph is pasted.',
     miniRows: [
       ['Fixes', 'Clarity, flow, and repetition'],
       ['Best for', 'One dense paragraph at a time'],
@@ -473,7 +467,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Evidence result',
     outputHint: 'Find claims that need stronger support.',
     runLabel: 'Check Evidence',
-    runHint: 'Run once essay is pasted.',
     miniRows: [
       ['Checks', 'Claim strength and proof quality'],
       ['Best for', 'Argument and analysis essays'],
@@ -486,7 +479,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Conclusion result',
     outputHint: 'Review closure quality and next-step fixes.',
     runLabel: 'Check Conclusion',
-    runHint: 'Run once your closing lines are in place.',
     miniRows: [
       ['Checks', 'Closure, reflection, and memorability'],
       ['Best for', 'Ending and last-impression drafts'],
@@ -499,7 +491,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Score result',
     outputHint: 'Read your full readiness profile.',
     runLabel: 'Run Score',
-    runHint: 'Run once your full draft is pasted.',
     miniRows: [
       ['Checks', 'Structure, voice, and detail balance'],
       ['Best for', 'Final draft validation'],
@@ -512,7 +503,6 @@ const TOOL_EXECUTION_COPY: Record<
     outputTitle: 'Prompt fit result',
     outputHint: 'See how fully your essay matches asks.',
     runLabel: 'Check Prompt Fit',
-    runHint: 'Run once prompt and draft are ready.',
     miniRows: [
       ['Checks', 'Prompt asks and response coverage'],
       ['Best for', 'Short-answer and statement drafts'],
@@ -1104,7 +1094,6 @@ export default function ScorePage() {
                         )}
                       </button>
                     )}
-                    <span className="workState">{wc} / {activeToolMeta.maxWords} words</span>
                   </div>
                 </div>
                 <div className="workBody">
@@ -1131,17 +1120,19 @@ export default function ScorePage() {
                           />
                         )}
                       </div>
-                      <textarea
-                        className="essayInput"
-                        value={essay}
-                        onChange={(event) => {
-                          setEssayLimited(event.target.value, activeToolMeta.maxWords)
-                          clearResults()
-                        }}
-                        onPaste={(event) => handleLimitedPaste(event, activeToolMeta.maxWords, (value) => setEssayLimited(value, activeToolMeta.maxWords), essay)}
-                        placeholder={`Paste your essay here (${MIN_WORDS}–${activeToolMeta.maxWords} words)…`}
-                      />
-                      <p className="inputHintNote">{sideCopy.runHint}</p>
+                      <div className="essayInputWrap">
+                        <textarea
+                          className="essayInput"
+                          value={essay}
+                          onChange={(event) => {
+                            setEssayLimited(event.target.value, activeToolMeta.maxWords)
+                            clearResults()
+                          }}
+                          onPaste={(event) => handleLimitedPaste(event, activeToolMeta.maxWords, (value) => setEssayLimited(value, activeToolMeta.maxWords), essay)}
+                          placeholder={`Paste your essay here (${MIN_WORDS}–${activeToolMeta.maxWords} words)…`}
+                        />
+                        <span className="essayWordCount">{wc} / {activeToolMeta.maxWords} words</span>
+                      </div>
                       </>
                   ) : (
                     <p className="p-4 text-sm text-admitly-black/60">
@@ -2632,6 +2623,15 @@ export default function ScorePage() {
             font: 400 15px/1.75 'DM Sans', system-ui, sans-serif;
           }
 
+          .essayInputWrap {
+            position: relative;
+            width: 100%;
+            min-height: 260px;
+            flex: 1;
+            display: flex;
+            min-width: 0;
+          }
+
           .essayInput {
             width: 100%;
             min-height: 260px;
@@ -2641,18 +2641,23 @@ export default function ScorePage() {
             border: 1px solid #e2e8f0;
             border-radius: 16px;
             outline: 0;
-            padding: 17px;
+            padding: 17px 17px 34px;
             color: #223046;
             font: 400 15px/1.75 'DM Sans', system-ui, sans-serif;
             background: #fff;
           }
 
-          .inputHintNote {
-            margin: 0;
+          .essayWordCount {
+            position: absolute;
+            right: 16px;
+            bottom: 11px;
             color: #64748b;
             font-size: 11px;
-            line-height: 1.4;
-            font-weight: 800;
+            line-height: 1;
+            font-weight: 400;
+            pointer-events: none;
+            background: rgba(255,255,255,.86);
+            padding-left: 8px;
           }
 
           .runButton {
