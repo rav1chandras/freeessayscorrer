@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, captured: wasNew })
   } catch (err) {
     console.error('[capture-email] write failed:', err)
-    return NextResponse.json({ error: 'Could not save email. Please try again.' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Email signup is temporarily unavailable. Please try again soon.', code: 'email_capture_unavailable' },
+      { status: 503 }
+    )
   }
 }

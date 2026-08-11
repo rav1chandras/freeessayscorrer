@@ -20,20 +20,41 @@ import mysql from 'mysql2/promise'
 let pool: mysql.Pool | null = null
 let schemaReady: Promise<void> | null = null
 
+function parseDbHostAndPort(rawHost: string, rawPort: string | undefined): { host: string; port: number } {
+  let host = rawHost.trim()
+  let port = Number(rawPort ?? 3306)
+
+  try {
+    const url = new URL(host.includes('://') ? host : `mysql://${host}`)
+    if (url.hostname) host = url.hostname
+    if (url.port) port = Number(url.port)
+  } catch {
+    const hostPort = host.match(/^([^:]+):(\d+)$/)
+    if (hostPort) {
+      host = hostPort[1]
+      port = Number(hostPort[2])
+    }
+  }
+
+  if (!Number.isFinite(port) || port <= 0) port = 3306
+  return { host, port }
+}
+
 function getPool(): mysql.Pool {
   if (pool) return pool
 
-  const host = process.env.DB_HOST
+  const rawHost = process.env.DB_HOST
   const user = process.env.DB_USER
   const password = process.env.DB_PASSWORD
   const database = process.env.DB_NAME
-  const port = Number(process.env.DB_PORT ?? 3306)
 
-  if (!host || !user || !database) {
+  if (!rawHost || !user || !database) {
     throw new Error(
       'Database not configured. Set DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in your environment.'
     )
   }
+
+  const { host, port } = parseDbHostAndPort(rawHost, process.env.DB_PORT)
 
   pool = mysql.createPool({
     host,
@@ -77,23 +98,27 @@ async function ensureSchema(p: mysql.Pool): Promise<void> {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
 
-  // analytics_events — meta stored as JSON column
-  await p.query(`
-    CREATE TABLE IF NOT EXISTS analytics_events (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(64) NOT NULL,
-      session_id VARCHAR(64) NULL,
-      tool VARCHAR(64) NULL,
-      quality VARCHAR(16) NULL,
-      source VARCHAR(64) NULL,
-      meta JSON NULL,
-      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      KEY idx_name_created (name, created_at),
-      KEY idx_tool (tool),
-      KEY idx_source (source),
-      KEY idx_created (created_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  `)
+  try {
+    // Keep analytics optional so a reporting-table issue never breaks signups.
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(64) NOT NULL,
+        session_id VARCHAR(64) NULL,
+        tool VARCHAR(64) NULL,
+        quality VARCHAR(16) NULL,
+        source VARCHAR(64) NULL,
+        meta TEXT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_name_created (name, created_at),
+        KEY idx_tool (tool),
+        KEY idx_source (source),
+        KEY idx_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `)
+  } catch (err) {
+    console.error('[db] analytics schema init failed:', err)
+  }
 }
 
 /**
