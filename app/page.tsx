@@ -996,7 +996,23 @@ export default function ScorePage() {
                     style={tileVarsForTool(tool)}
                     aria-label={tool.label}
                   >
-                    <svg className="bgGraphic" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+                    <svg
+                      className="bgGraphic"
+                      viewBox="0 0 100 100"
+                      fill="var(--shape, rgba(6,36,91,.07))"
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        right: -18,
+                        bottom: -19,
+                        width: 82,
+                        height: 82,
+                        color: 'var(--shape, rgba(6,36,91,.07))',
+                        opacity: 0.75,
+                        zIndex: 0,
+                        pointerEvents: 'none',
+                      }}
+                    >
                       {tileShapeShape(tool.tileShape, tool.id)}
                     </svg>
                     <div className="toolTop">
