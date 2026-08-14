@@ -18,7 +18,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type FreeToolId = 'reader' | 'thesis' | 'outline' | 'score'
-type BackendToolId = 'hook' | 'cliche' | 'aicheck' | 'fullscore'
+type BackendToolId = FreeToolId
 type ToolId =
   | FreeToolId
   | 'studio'
@@ -70,9 +70,20 @@ interface FullScoreResult {
   priorities: string[]
   rubric: Array<{ category: string; score: number; note: string }>
 }
+interface OutlineSection {
+  label: string
+  purpose: string
+  suggestion: string
+}
+interface OutlineResult {
+  summary: string
+  thesis: string
+  sections: OutlineSection[]
+  priorities: string[]
+}
 interface ScoreResponse {
   tool: FreeToolId
-  result: HookResult | ClicheResult | AiCheckResult | FullScoreResult
+  result: HookResult | ClicheResult | AiCheckResult | FullScoreResult | OutlineResult
   quota: { remaining: number; limit: number; resetAt: number }
 }
 
@@ -444,10 +455,10 @@ const FREE_TOOLS = TOOLS.filter((tool): tool is ToolMeta & { id: FreeToolId } =>
 const PREMIUM_TOOLS = TOOLS.filter((tool) => !tool.isFree)
 
 const TOOL_TO_API_BACKEND: Record<FreeToolId, BackendToolId> = {
-  reader: 'hook',
-  thesis: 'cliche',
-  outline: 'aicheck',
-  score: 'fullscore',
+  reader: 'reader',
+  thesis: 'thesis',
+  outline: 'outline',
+  score: 'score',
 }
 
 const TOOL_EXECUTION_COPY: Record<
@@ -638,8 +649,8 @@ function interpretQuality(tool: FreeToolId, result: ScoreResponse['result']): Re
     const s = (result as FullScoreResult).overall_score
     return s >= 85 ? 'great' : s >= 70 ? 'okay' : 'needs-work'
   }
-  const s = (result as AiCheckResult).human_score
-  return s >= 75 ? 'great' : s >= 50 ? 'okay' : 'needs-work'
+  const sections = (result as OutlineResult).sections.length
+  return sections >= 5 ? 'great' : sections >= 3 ? 'okay' : 'needs-work'
 }
 
 function shareScore(tool: FreeToolId, result: ScoreResponse['result']): number {
@@ -649,7 +660,7 @@ function shareScore(tool: FreeToolId, result: ScoreResponse['result']): number {
   }
   if (tool === 'thesis') return (result as ClicheResult).findings.length
   if (tool === 'score') return (result as FullScoreResult).overall_score
-  return (result as AiCheckResult).human_score
+  return Math.min(100, (result as OutlineResult).sections.length * 18)
 }
 
 const SEV_BG: Record<'high' | 'medium' | 'low', string> = {
@@ -1382,7 +1393,8 @@ function QuotaExceededCard() {
 function ResultPanel({ response }: { response: ScoreResponse }) {
   const { tool, result } = response
   if (tool === 'reader') return <HookResultView result={result as HookResult} />
-  if (tool === 'thesis') return <ClicheResultView result={result as ClicheResult} />
+  if (tool === 'thesis') return <ClicheResultView result={result as ClicheResult} title="Thesis check" emptyTitle="Thesis looks focused" emptyBody="Your central claim is clear, specific, and easy to follow." />
+  if (tool === 'outline') return <OutlineResultView result={result as OutlineResult} />
   if (tool === 'score') return <FullScoreResultView result={result as FullScoreResult} />
   return <AiCheckResultView result={result as AiCheckResult} />
 }
@@ -1511,7 +1523,17 @@ function HookResultView({ result }: { result: HookResult }) {
   )
 }
 
-function ClicheResultView({ result }: { result: ClicheResult }) {
+function ClicheResultView({
+  result,
+  title = 'Cliché check',
+  emptyTitle = 'No significant clichés detected',
+  emptyBody = 'Your essay feels fresh and specific.',
+}: {
+  result: ClicheResult
+  title?: string
+  emptyTitle?: string
+  emptyBody?: string
+}) {
   const sevCounts = {
     high: result.findings.filter((f) => f.severity === 'high').length,
     medium: result.findings.filter((f) => f.severity === 'medium').length,
@@ -1521,7 +1543,7 @@ function ClicheResultView({ result }: { result: ClicheResult }) {
   return (
     <section className="space-y-3 animate-in fade-in duration-500">
       <div className="rounded-3xl bg-fes-blue-50 p-6 sm:p-7 border border-fes-blue/10">
-        <div className="text-xs font-black tracking-[0.15em] text-fes-blue uppercase">Cliché check</div>
+        <div className="text-xs font-black tracking-[0.15em] text-fes-blue uppercase">{title}</div>
         <div className="flex items-end gap-3 mt-2">
           <span className="font-display text-6xl sm:text-7xl font-black tabular-nums tracking-[-0.04em] text-admitly-black">{result.findings.length}</span>
           <span className="text-lg font-bold text-admitly-black/40 pb-3">
@@ -1540,9 +1562,9 @@ function ClicheResultView({ result }: { result: ClicheResult }) {
         <div className="rounded-2xl bg-admitly-mint border border-admitly-green/20 p-5">
           <div className="flex items-center gap-2">
             <CheckIcon size={18} className="text-admitly-green" />
-            <p className="text-sm font-bold text-admitly-green">No significant clichés detected</p>
+            <p className="text-sm font-bold text-admitly-green">{emptyTitle}</p>
           </div>
-          <p className="text-sm text-admitly-black/70 mt-1">Your essay feels fresh and specific.</p>
+          <p className="text-sm text-admitly-black/70 mt-1">{emptyBody}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -1557,6 +1579,58 @@ function ClicheResultView({ result }: { result: ClicheResult }) {
               {f.replacement && <div className="rounded-xl bg-white border border-admitly-black/10 px-3 py-2 mt-2"><div className="text-[10px] font-black tracking-wide uppercase text-admitly-black/50 mb-1">Try instead</div><p className="text-sm text-admitly-black">{f.replacement}</p></div>}
             </div>
           ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function OutlineResultView({ result }: { result: OutlineResult }) {
+  return (
+    <section className="space-y-3 animate-in fade-in duration-500">
+      <div className="rounded-3xl bg-fes-blue-50 p-6 sm:p-7 border border-fes-blue/10">
+        <div className="text-xs font-black tracking-[0.15em] text-fes-blue uppercase">Outline builder</div>
+        <h3 className="font-display text-3xl sm:text-4xl font-black text-admitly-black mt-2 tracking-tight">
+          Draft path
+        </h3>
+        <p className="text-sm text-admitly-black/78 mt-3 leading-relaxed">{result.summary}</p>
+        {result.thesis && (
+          <div className="rounded-2xl bg-white border border-fes-blue/15 px-4 py-3 mt-4">
+            <div className="text-[10px] font-black tracking-[0.14em] uppercase text-fes-blue mb-1">Working thesis</div>
+            <p className="text-sm font-semibold text-admitly-black">{result.thesis}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {result.sections.map((section, i) => (
+          <div key={`${section.label}-${i}`} className="rounded-2xl bg-white border border-admitly-black/10 p-4 sm:p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-fes-blue text-xs font-black text-white">
+                {i + 1}
+              </span>
+              <div className="min-w-0">
+                <h4 className="text-sm font-black text-admitly-black">{section.label}</h4>
+                <p className="text-sm text-admitly-black/65 mt-1">{section.purpose}</p>
+                {section.suggestion && (
+                  <div className="rounded-xl bg-fes-blue/8 border border-fes-blue/20 px-3 py-2 mt-3 text-sm text-admitly-black">
+                    {section.suggestion}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {result.priorities.length > 0 && (
+        <div className="rounded-2xl bg-admitly-mint border border-admitly-green/20 p-4 sm:p-5">
+          <div className="text-xs font-black tracking-[0.15em] text-admitly-green uppercase mb-2">Before drafting</div>
+          <ul className="space-y-2">
+            {result.priorities.map((item) => (
+              <li key={item} className="text-sm text-admitly-black/75 font-semibold">{item}</li>
+            ))}
+          </ul>
         </div>
       )}
     </section>

@@ -10,28 +10,35 @@ import {
 
 import {
   sanitizeEssayText as hookSanitize,
-  buildHookAnalysisPrompt,
   parseHookResponse,
 } from '../../../../lib/hook-analyzer-helpers'
 
 import {
   sanitizeEssayText as clicheSanitize,
-  buildClicheDetectionPrompt,
   parseClicheResponse,
 } from '../../../../lib/cliche-detector-helpers'
 
 import {
   sanitizeEssayText as aiSanitize,
-  buildAiCheckPrompt,
-  parseAiCheckResponse,
 } from '../../../../lib/ai-check-helpers'
 
 const MIN_WORDS = 50
 const MAX_WORDS = 1500
 const META_MODEL = 'muse-spark-1.2-contributor'
 
-type PublicTool = 'hook' | 'cliche' | 'aicheck' | 'fullscore'
-const PUBLIC_TOOLS: PublicTool[] = ['hook', 'cliche', 'aicheck', 'fullscore']
+type PublicTool = 'reader' | 'thesis' | 'outline' | 'score'
+type PublicToolInput = PublicTool | 'hook' | 'cliche' | 'aicheck' | 'fullscore'
+
+const PUBLIC_TOOL_ALIASES: Record<PublicToolInput, PublicTool> = {
+  reader: 'reader',
+  thesis: 'thesis',
+  outline: 'outline',
+  score: 'score',
+  hook: 'reader',
+  cliche: 'thesis',
+  aicheck: 'outline',
+  fullscore: 'score',
+}
 
 type FullScoreResult = {
   overall_score: number
@@ -42,8 +49,16 @@ type FullScoreResult = {
   rubric: Array<{ category: string; score: number; note: string }>
 }
 
-function isPublicTool(v: unknown): v is PublicTool {
-  return typeof v === 'string' && (PUBLIC_TOOLS as string[]).includes(v)
+type OutlineResult = {
+  summary: string
+  thesis: string
+  sections: Array<{ label: string; purpose: string; suggestion: string }>
+  priorities: string[]
+}
+
+function normalizePublicTool(v: unknown): PublicTool | null {
+  if (typeof v !== 'string') return null
+  return PUBLIC_TOOL_ALIASES[v as PublicToolInput] ?? null
 }
 
 function wordCount(text: string): number {
@@ -141,14 +156,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  if (!isPublicTool(body.tool)) {
+  const tool = normalizePublicTool(body.tool)
+  if (!tool) {
     return NextResponse.json(
       { error: 'Unknown or gated tool. Sign up at app.admitly.com to access all tools.', gated: true },
       { status: 400 }
     )
   }
 
-  const tool = body.tool
   const rawEssay = body.essay ?? ''
   const essayType =
     typeof body.essayType === 'string' ? body.essayType.trim() : 'Personal Statement'
@@ -156,10 +171,10 @@ export async function POST(req: NextRequest) {
   // ── Validate BEFORE consuming quota ───────────────────────────────────────
   let essay: string
   switch (tool) {
-    case 'hook':    essay = hookSanitize(rawEssay); break
-    case 'cliche':  essay = clicheSanitize(rawEssay); break
-    case 'aicheck': essay = aiSanitize(rawEssay); break
-    case 'fullscore': essay = aiSanitize(rawEssay); break
+    case 'reader':  essay = hookSanitize(rawEssay); break
+    case 'thesis':  essay = clicheSanitize(rawEssay); break
+    case 'outline': essay = aiSanitize(rawEssay); break
+    case 'score':   essay = aiSanitize(rawEssay); break
   }
 
   const wc = wordCount(essay)
@@ -201,10 +216,10 @@ export async function POST(req: NextRequest) {
   // ── Build prompt ──────────────────────────────────────────────────────────
   let prompt: string
   switch (tool) {
-    case 'hook':    prompt = buildHookAnalysisPrompt(essay, essayType); break
-    case 'cliche':  prompt = buildClicheDetectionPrompt(essay, essayType); break
-    case 'aicheck': prompt = buildAiCheckPrompt(essay, essayType); break
-    case 'fullscore': prompt = buildFullScorePrompt(essay, essayType); break
+    case 'reader':  prompt = buildReaderSimulatorPrompt(essay, essayType); break
+    case 'thesis':  prompt = buildThesisCheckerPrompt(essay, essayType); break
+    case 'outline': prompt = buildOutlinePrompt(essay, essayType); break
+    case 'score':   prompt = buildFullScorePrompt(essay, essayType); break
   }
 
   // ── Call Meta Model API ───────────────────────────────────────────────────
@@ -256,10 +271,10 @@ export async function POST(req: NextRequest) {
 
   let result: unknown
   switch (tool) {
-    case 'hook':    result = parseHookResponse(raw, quota.remaining, resetAt); break
-    case 'cliche':  result = parseClicheResponse(raw, quota.remaining, resetAt); break
-    case 'aicheck': result = parseAiCheckResponse(raw, quota.remaining, resetAt); break
-    case 'fullscore': result = parseFullScoreResponse(raw); break
+    case 'reader':  result = parseHookResponse(raw, quota.remaining, resetAt); break
+    case 'thesis':  result = parseClicheResponse(raw, quota.remaining, resetAt); break
+    case 'outline': result = parseOutlineResponse(raw); break
+    case 'score':   result = parseFullScoreResponse(raw); break
   }
 
   if (!result) {
@@ -306,6 +321,81 @@ export async function GET() {
   return res
 }
 
+function buildReaderSimulatorPrompt(essay: string, essayType: string): string {
+  return `
+You are a college essay reader simulating a first admissions read. Evaluate this ${essayType} for first impression, memorability, clarity, and emotional pull.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "overall_score": "weak | moderate | strong",
+  "opening_lines": "the opening line(s) you evaluated",
+  "findings": [
+    {
+      "element": "First impression | Memorability | Clarity | Emotional pull",
+      "assessment": "specific reader-facing assessment",
+      "score": "weak | moderate | strong",
+      "suggestion": "concrete next revision"
+    }
+  ],
+  "rewrite_suggestion": "optional 1-2 sentence reader-focused revision idea"
+}
+
+Give 3-5 findings. Be concrete and student-friendly.
+
+Essay:
+"""${essay}"""
+`.trim()
+}
+
+function buildThesisCheckerPrompt(essay: string, essayType: string): string {
+  return `
+You are a thesis and central-claim coach for college essays. Check whether this ${essayType} has a clear, specific, arguable central claim or controlling insight.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "findings": [
+    {
+      "phrase": "short excerpt or issue label",
+      "context_sentence": "sentence from the essay, if relevant",
+      "why_problem": "why this weakens the thesis or controlling idea",
+      "replacement": "a stronger thesis/claim direction or rewrite",
+      "severity": "high | medium | low"
+    }
+  ]
+}
+
+If the thesis is already strong, return {"findings":[]}. Do not flag clichés unless they weaken the central claim.
+
+Essay:
+"""${essay}"""
+`.trim()
+}
+
+function buildOutlinePrompt(essay: string, essayType: string): string {
+  return `
+You are an essay structure coach. Build or improve a clean outline for this ${essayType}. Focus on narrative flow, paragraph purpose, and what each section should prove.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "summary": "2 sentence overview of the current structure and best path forward",
+  "thesis": "one sentence working thesis or controlling insight",
+  "sections": [
+    {
+      "label": "Hook / Setup / Turning point / Reflection / Conclusion",
+      "purpose": "what this section should accomplish",
+      "suggestion": "specific content to add, move, cut, or clarify"
+    }
+  ],
+  "priorities": ["highest-impact structure fix", "second fix", "third fix"]
+}
+
+Provide 4-6 sections. Keep every suggestion actionable and tied to the essay.
+
+Essay:
+"""${essay}"""
+`.trim()
+}
+
 function buildFullScorePrompt(essay: string, essayType: string): string {
   return `
 You are an expert essay evaluator. Score this ${essayType} for readiness.
@@ -330,6 +420,33 @@ Scores must be integers from 0 to 100. Be concrete, kind, and revision-focused.
 Essay:
 """${essay}"""
 `.trim()
+}
+
+function parseOutlineResponse(raw: string): OutlineResult | null {
+  try {
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    const parsed = JSON.parse(match[0]) as Partial<OutlineResult>
+    const sections = Array.isArray(parsed.sections)
+      ? parsed.sections
+        .filter((item): item is OutlineResult['sections'][number] => !!item && typeof item === 'object')
+        .slice(0, 6)
+        .map((item) => ({
+          label: typeof item.label === 'string' ? item.label.slice(0, 60) : 'Section',
+          purpose: typeof item.purpose === 'string' ? item.purpose.slice(0, 260) : 'Clarify this part of the essay.',
+          suggestion: typeof item.suggestion === 'string' ? item.suggestion.slice(0, 360) : 'Add a specific example or transition here.',
+        }))
+      : []
+    if (sections.length === 0) return null
+    return {
+      summary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 600) : 'Your essay has a workable structure and needs clearer section goals.',
+      thesis: typeof parsed.thesis === 'string' ? parsed.thesis.slice(0, 280) : '',
+      sections,
+      priorities: Array.isArray(parsed.priorities) ? parsed.priorities.filter((v): v is string => typeof v === 'string').slice(0, 4) : [],
+    }
+  } catch {
+    return null
+  }
 }
 
 function parseFullScoreResponse(raw: string): FullScoreResult | null {
